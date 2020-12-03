@@ -120,5 +120,5 @@ class Preprocessor:
         final = self.get_grayscale(self.img)
         if threshold:
             final = self.thresholdLocal(final)
-
-        return self.correctSize(final)
+        final = self.correctSize(final)
+        return final

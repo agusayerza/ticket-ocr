@@ -9,13 +9,17 @@ import numpy as np
 import imutils
 import cv2
 from fuzzywuzzy import process, fuzz
+from skimage.filters import threshold_local
 
 from NumberParser import parseNumber
 from StringReader import ReadResult
 
 
 def keepNumericSymbolsOnly(string, exceptions=[]):
-    return "".join([char if (char.isdigit() or char in exceptions) else "" for char in string])
+    a = "".join([char if (char.isdigit() or char in exceptions) else "" for char in string])
+    if a == "":
+        a = "1"
+    return a
 
 def cleanDate(string):
     return keepNumericSymbolsOnly(string, ["/"])
@@ -31,12 +35,22 @@ def cleanCard(string):
     results = sorted(results, key=lambda tup: -tup[0])
     if len(string) > 10 and results[0][0] < 60:
         return cards[1] # big length, not a very good guess, probably mastercard
+    bests = list(filter(best_results, results))
+    if len(bests) == 0:
+        bests.append([-1, "VISA"])
 
-    return results[0][1]
+    best = bests[0]
+    return best[1]
+
+def best_results(result):
+    if result[0] > 40:
+        return True
+    else:
+        return False
 
 def cleanLote(string):
     s = keepNumericSymbolsOnly(string)
-    replaced = "".join(["0" if (c == "8" or c == "6" or c == "9") else c for c in string])
+    replaced = "".join(["0" if (c == "8" or c == "6" or c == "9" or c == "3") else c for c in s])
     if replaced == "004":
         return "004"
     elif replaced == "000004":
@@ -52,7 +66,7 @@ def doNothingCleaner(string):
     return string
 
 def cleanImporte(string):
-    result = parseNumber(string)
+    result = parseNumber(string, True)
     if result is None:
         # find first word after imp total that has digits and keep the digits, adding the comma if found
         digits = "".join([char if char.isdigit() else "" for char in string])
@@ -67,7 +81,7 @@ def cleanImporte(string):
                 digits = digits[0:-1] + "." + digits[-1:]
             elif thirdToLastChar == "," or thirdToLastChar == ".":
                 digits = digits[0:-2] + "." + digits[-2:]
-            return str(parseNumber(digits))
+            return str(parseNumber(digits, True))
         result = ""
     return str(result)
 
@@ -76,7 +90,7 @@ def cleanImporte(string):
 OCRLocation = namedtuple("OCRLocation", ["id", "bbox", "cleanup"])
 # define the locations of each area of the document we wish to OCR
 OCR_LOCATIONS = [
-    OCRLocation("date", (80, 111, 120, 43),cleanDate),
+    # OCRLocation("date", (80, 111, 120, 43),cleanDate),
     OCRLocation("card", (200, 111, 120, 43), cleanCard),
     # OCRLocation("hour", (320, 111, 120, 43), doNothingCleaner),
     OCRLocation("importe", (230, 375, 150, 40), cleanImporte),
@@ -175,8 +189,9 @@ class AlignmentExtractor:
             # OCR the ROI using Tesseract
             custom_config = r'--oem 3 --psm 6'
             # ret, roi = cv2.threshold(roi, 200, 255, cv2.THRESH_BINARY)
-            cv2.imshow("ROI", roi)
-            cv2.waitKey()
+            if debug:
+                cv2.imshow("ROI", roi)
+                cv2.waitKey()
             text = pytesseract.image_to_string(roi, lang="custom", config=custom_config)
             line = loc.cleanup(text.upper())
             parsingResults.append((loc, line))
@@ -216,9 +231,9 @@ class AlignmentExtractor:
             # output image using OpenCV
             (x, y, w, h) = loc["bbox"]
             # draw a bounding box around the text
-            cv2.rectangle(color, (x, y), (x + w, y + h), (0, 255, 0), 1)
+            cv2.rectangle(color, (x, y), (x + w, y + h), (255, 150, 150), 3)
             # loop over all lines in the text
-            cv2.putText(color, text, (x, y),cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+            cv2.putText(color, text, (x, y),cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
         # show the input and output images, resizing it such that they fit
         # on our screen
@@ -227,7 +242,7 @@ class AlignmentExtractor:
             cv2.imshow("Output", imutils.resize(color))
             cv2.waitKey(0)
 
-        return ReadResult(results["date"][0], results["card"][0], results["lote"][0], results["cuotas"][0], results["importe"][0])
+        return ReadResult("", results["card"][0], results["lote"][0], results["cuotas"][0], results["importe"][0])
     #
     # class ReadResult:
     #     def __init__(self, date, card, lote, cuotas, importe):

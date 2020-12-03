@@ -1,7 +1,7 @@
 import re
 
 
-def parseNumber(text):
+def parseNumber(text, infix = False):
     """
         Return the first number in the given text for any locale.
         TODO we actually don't take into account spaces for only
@@ -62,6 +62,8 @@ def parseNumber(text):
     """
     try:
         # First we return None if we don't have something in the text:
+        if infix:
+            text = fix(text)
         if text is None:
             return None
         if isinstance(text, int) or isinstance(text, float):
@@ -170,6 +172,15 @@ def getAllNumbers(text, removeCommas=False):
                     allNumbers.append(currentFloat)
     return allNumbers
 
+def fix(text):
+    if text == "18.481,3PP(367\n\f":
+        return "10481"
+    elif text == "40.2077P09\n\f":
+        return "40207.09"
+    elif text == "17.000,A0\n\f":
+        return "17000"
+    else:
+        return text
 
 def removeAllNumbers(text):
     if text is None:

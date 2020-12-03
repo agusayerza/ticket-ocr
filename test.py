@@ -60,10 +60,11 @@ if __name__ == '__main__':
 
     fotos = os.getcwd()+'/input'
     output = os.getcwd()+'/output'
+    single = os.getcwd()+'/single'
     processed = os.getcwd()+'/processed'
     os.chdir(fotos)
     files = glob.glob("*.jpg")
-    os.chdir(fotos)
+    os.chdir(single)
     template = cv2.imread("template.jpg")
     results = []
     for file in files:
@@ -82,7 +83,7 @@ if __name__ == '__main__':
 
         image_align = preprocessor.correctSizeBRG(orig)
         extractor = AlignmentExtractor(image_align, template)
-        result_align = extractor.extract(debug=True)
+        result_align = extractor.extract(debug=False)
 
         reader = StringReader(string)
         result_parse = reader.parse()
