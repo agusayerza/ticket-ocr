@@ -2,12 +2,13 @@ import cv2
 import numpy as np
 
 class TicketExtractor:
-    def __init__(self, orig):
+    def __init__(self, orig, filename):
         # these constants are carefully picked
         self.MORPH = 9
         self.CANNY = 84
         self.HOUGH = 25
         self.orig = orig
+        self.filename = filename
 
     def extract(self):
         img = cv2.cvtColor(self.orig, cv2.COLOR_BGR2GRAY)
@@ -31,12 +32,12 @@ class TicketExtractor:
         contours = sorted(contours, key=lambda x: -cv2.contourArea(x))
 
         cv2.drawContours(self.orig, contours, -1, (255, 0, 0))
-        cv2.imshow('result', self.orig)
-        cv2.waitKey(0)
-        cv2.imshow('result', dilated)
-        cv2.waitKey(0)
-        cv2.imshow('result', edges)
-        cv2.waitKey(0)
+        # cv2.imshow('result', self.orig)
+        # cv2.waitKey(0)
+        # cv2.imshow('result', dilated)
+        # cv2.waitKey(0)
+        # cv2.imshow('result', edges)
+        # cv2.waitKey(0)
 
         # simplify contours down to polygons and find rectangle with rotation matrix
         rect, rotMatrix, rotation_rectangle = self.filterTicket(contours)
